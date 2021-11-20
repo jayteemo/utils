@@ -253,6 +253,24 @@ def wait_for_prompt(val1=b'gateway:# ', val2=None, timeout=15, store=None):
                                                                      line)))
     return retval, output
 
+def check_provisioning_csv(csv_filename, dev_id):
+    exists = False
+    row_count = 0
+
+    with open(csv_filename) as csvfile:
+        prov = csv.reader(csvfile, delimiter=',')
+
+        for row in prov:
+            row_count += 1
+            # First column is the device ID
+            if row[0] == dev_id:
+                exists = True
+                print("Device \'{}\' exists in CSV file: ".format(dev_id))
+
+        csvfile.close()
+
+    return exists, row_count
+
 def save_provisioning_csv(csv_filename, append, dev_id, sub_type, tags, fw_types, dev):
     mode = 'a' if append else 'w'
 
