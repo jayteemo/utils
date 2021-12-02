@@ -119,17 +119,6 @@ def check_provisioning_csv(csv_filename, dev_id):
 def save_provisioning_csv(csv_filename, append, dev_id, sub_type, tags, fw_types, dev):
     mode = 'a' if append else 'w'
 
-    # if not appending, give user a choice whether to overwrite
-    if not append and os.path.isfile(csv_filename):
-        answer = ' '
-        while answer not in 'yan':
-            answer = input('--- File {} exists; overwrite, append, or quit (y,a,n)? '.format(csv_filename))
-        if answer == 'n':
-            print(local_style('File will not be overwritten'))
-            return
-        if answer == 'a':
-            mode = 'a'
-
     try:
         with open(csv_filename, mode, newline='\n') as csvfile:
             csv_writer = csv.writer(csvfile, delimiter=',', lineterminator='\n',
@@ -204,14 +193,17 @@ def main():
     if not os.path.exists(os.path.dirname(csv_filepath)):
         raise RuntimeError("Path for CSV file does not exist: " + os.path.dirname(csv_filepath))
 
-    dev_exists, csv_row_count = check_provisioning_csv(csv_filepath, dev_id)
+    csv_exists = os.path.isfile(csv_filepath)
 
-    print(local_style("Provisioning CSV row count [max {}]: {}".format(MAX_CSV_ROWS, csv_row_count)))
-    if csv_row_count >= 1000:
-        raise RuntimeError("Provisioning CSV file is full")
+    if csv_exists and not args.overwrite:
+        dev_exists, csv_row_count = check_provisioning_csv(csv_filepath, dev_id)
 
-    if dev_exists:
-        raise RuntimeError("Device already exists in provisioning CSV file")
+        print(local_style("Provisioning CSV row count [max {}]: {}".format(MAX_CSV_ROWS, csv_row_count)))
+        if csv_row_count >= 1000:
+            raise RuntimeError("Provisioning CSV file is full")
+
+        if dev_exists:
+            raise RuntimeError("Device already exists in provisioning CSV file")
 
     ca_cert = load_ca(args.ca)
     ca_key = load_ca_key(args.ca_key)
@@ -276,8 +268,9 @@ def main():
         write_file(args.path, args.fileprefix + dev_id + "_prv.pem", priv)
 
     print(local_style('Adding device \'{}\' to provisioning CSV file...'.format(dev_id)))
+    append = csv_exists and (not args.overwrite)
     save_provisioning_csv(csv_filepath,
-                          not args.overwrite,
+                          append,
                           dev_id,
                           args.subtype,
                           args.tags,
