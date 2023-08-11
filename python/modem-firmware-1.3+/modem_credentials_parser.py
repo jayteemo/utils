@@ -23,7 +23,8 @@ msg_type_dict = {
 device_type_dict = {
     1: 'nRF9160 SIAA',
     2: 'nRF9160 SIBA',
-    3: 'NRF9160 SIAA'
+    3: 'NRF9160 SIAA',
+    4: 'nRF9161 LACA AAA'
 }
 payload_id_dict = {
     8: 'pubkey_msg_v2',
@@ -242,11 +243,15 @@ def parse_attesttoken_output(atokout_str):
     # Load into CBOR parser
     body_obj = loads(body_bytes)
 
+    dev_type = device_type_dict.get(body_obj[2])
+    if not dev_type:
+        dev_type = "Unknown"
+
     # Print parsed CBOR
     print("---------------")
     print("Msg Type:    " + msg_type_dict[body_obj[0]])
     print("Dev UUID:    " + format_uuid(body_obj[1].hex()))
-    print("Dev Type:    " + device_type_dict.get(body_obj[2]))
+    print("Dev Type:    " + dev_type)
     print("FW UUID:     " + format_uuid(body_obj[3].hex()))
     print("---------------")
 
@@ -258,6 +263,20 @@ def parse_attesttoken_output(atokout_str):
     parse_cose(cose)
 
     return
+
+def get_device_uuid(attest_tok):
+
+    # Input format: <base64url_body>.<base64url_cose>
+    #               cose portion is optional
+    body_cose = attest_tok.split('.')
+    body = body_cose[0]
+
+    # Decode base64url to binary
+    body_bytes = base64_decode(body)
+    # Load into CBOR parser
+    body_obj = loads(body_bytes)
+
+    return format_uuid(body_obj[1].hex())
 
 def main():
 
