@@ -462,6 +462,11 @@ def main():
     elif args.id_imei:
         error_exit('Cannot format device ID without IMEI')
 
+    ser.close()
+    print(local_style('Disconnected from device serial port'))
+    input('Connect to device serial port using a serial terminal application '
+          'and press enter when complete')
+
     # get device UUID from attestation token
     dev_uuid = modem_credentials_parser.get_device_uuid(attest_tok)
     print(send_style('Device UUID: ' + dev_uuid))
@@ -484,7 +489,6 @@ def main():
         error_exit('ClaimDeviceOwnership API call failed')
 
     # get the device ID
-    device_id = ''
     if args.id_str:
         if args.id_imei:
             device_id = args.id_str + imei
@@ -594,18 +598,21 @@ def main():
     if not finished_id:
         error_exit('Failed to obtain provisioning finished cmd ID')
 
-    # tell the device to check for commands
-    write_line('nrf_provisioning now')
-    retval = wait_for_prompt(b'nrf_provisioning: Externally initiated provisioning', b'ERROR',)
-    if not retval:
-        print(error_style('Did not receive expected response on serial port... continuing'))
+    input('\n\nFinal commands scheduled: initiate provisioning check on device and press enter when complete')
 
-    # wait for device to process the commands
-    print(hivis_style('\nProvisioning command (client cert) ID: ' + prov_id + '\n'))
-    cmd_response = wait_for_cmd_status(args.api_key, dev_uuid, prov_id)
+    if 0:
+        # tell the device to check for commands
+        write_line('nrf_provisioning now')
+        retval = wait_for_prompt(b'nrf_provisioning: Externally initiated provisioning', b'ERROR',)
+        if not retval:
+            print(error_style('Did not receive expected response on serial port... continuing'))
 
-    print(hivis_style('\nProvisioning command (finished) ID: ' + finished_id + '\n'))
-    cmd_response = wait_for_cmd_status(args.api_key, dev_uuid, finished_id)
+        # wait for device to process the commands
+        print(hivis_style('\nProvisioning command (client cert) ID: ' + prov_id + '\n'))
+        cmd_response = wait_for_cmd_status(args.api_key, dev_uuid, prov_id)
+
+        print(hivis_style('\nProvisioning command (finished) ID: ' + finished_id + '\n'))
+        cmd_response = wait_for_cmd_status(args.api_key, dev_uuid, finished_id)
 
     # add the device to nrf cloud account
     print(hivis_style(f'\nnRF Cloud API URL: {nrf_cloud_provision.set_dev_stage(args.stage)}'))
